@@ -1,0 +1,102 @@
+# Contact-mask / FK config for phybot_c2 (21 DoF), consumed by Humanoid_Batch via
+# hydra (e.g. `python count_pkl_contact_mask.py robot=phybot_c2 ...` from motion_source/).
+# Modeled on unitree_g1_29dof_anneal_23dof.yaml.
+#
+# body_names = base_link + 21 single-joint links (URDF fixed links torso/neck_yaw/
+# neck_pitch are collapsed and do NOT appear here -- must match both the fitmotion
+# XML body tree and the IsaacGym body list after collapse_fixed_joints).
+humanoid_type: phybot_c2
+bias_offset: False
+has_self_collision: True
+has_mesh: False
+has_jt_limit: False
+has_dof_subset: True
+has_upright_start: True
+has_smpl_pd_offset: False
+remove_toe: False # For humanoid's geom toe
+motion_sym_loss: False
+sym_loss_coef: 1
+big_ankle: True
+
+has_shape_obs: false
+has_shape_obs_disc: false
+has_shape_variation: False
+
+masterfoot: False
+freeze_toe: false
+freeze_hand: False
+box_body: True
+real_weight: True
+real_weight_porpotion_capsules: True
+real_weight_porpotion_boxes: True
+
+body_names: [ 'base_link',
+              'left_hip_pitch', 'left_hip_roll', 'left_hip_yaw', 'left_knee', 'left_ankle_pitch', 'left_ankle_roll',
+              'right_hip_pitch', 'right_hip_roll', 'right_hip_yaw', 'right_knee', 'right_ankle_pitch', 'right_ankle_roll',
+              'waist_yaw',
+              'left_shoulder_pitch', 'left_shoulder_roll', 'left_shoulder_yaw', 'left_elbow_pitch',
+              'right_shoulder_pitch', 'right_shoulder_roll', 'right_shoulder_yaw', 'right_elbow_pitch' ]
+
+limb_weight_group:
+  - [ 'left_hip_pitch', 'left_hip_roll', 'left_hip_yaw', 'left_knee', 'left_ankle_pitch', 'left_ankle_roll' ]
+  - [ 'right_hip_pitch', 'right_hip_roll', 'right_hip_yaw', 'right_knee', 'right_ankle_pitch', 'right_ankle_roll' ]
+  - [ 'base_link', 'waist_yaw' ]
+  - [ 'left_shoulder_pitch', 'left_shoulder_roll', 'left_shoulder_yaw', 'left_elbow_pitch' ]
+  - [ 'right_shoulder_pitch', 'right_shoulder_roll', 'right_shoulder_yaw', 'right_elbow_pitch' ]
+
+dof_names: [ 'left_hip_pitch', 'left_hip_roll', 'left_hip_yaw',
+             'left_knee', 'left_ankle_pitch', 'left_ankle_roll',
+             'right_hip_pitch', 'right_hip_roll', 'right_hip_yaw',
+             'right_knee', 'right_ankle_pitch', 'right_ankle_roll',
+             'waist_yaw',
+             'left_shoulder_pitch', 'left_shoulder_roll', 'left_shoulder_yaw', 'left_elbow_pitch',
+             'right_shoulder_pitch', 'right_shoulder_roll', 'right_shoulder_yaw', 'right_elbow_pitch' ]
+
+right_foot_name: 'right_ankle_roll'
+left_foot_name: 'left_ankle_roll'
+
+asset:
+  assetRoot: "./"
+  # motion_source/utils/torch_humanoid_batch.py uses assetFileName alone, resolved
+  # from the CWD of the calling script (motion_source/); the humanoidverse copy
+  # joins assetRoot/assetFileName instead -- training configs carry their own paths.
+  assetFileName: "../description/robots/phybot_c2/phybot_fitmotion.xml"
+  urdfFileName: "../description/robots/phybot_c2/phybot_fitmotion.xml"
+
+# 3 extend keypoints -> pose_aa = 1 root + 21 joints + 3 zeros = 25 columns.
+# Adding/removing entries here changes pose_aa width and breaks the npz->pkl
+# converter and count_pkl (both pad exactly 3 zero columns).
+extend_config:
+  - joint_name: "left_hand_link"
+    parent_name: "left_elbow_pitch"
+    pos: [ 0.0, 0.0, -0.27 ] # GMR wrist_yaw keypoint; phybot arms hang along -z at zero pose
+    rot: [ 1.0, 0.0, 0.0, 0.0 ] # w x y z
+  - joint_name: "right_hand_link"
+    parent_name: "right_elbow_pitch"
+    pos: [ 0.0, 0.0, -0.27 ]
+    rot: [ 1.0, 0.0, 0.0, 0.0 ] # w x y z
+  - joint_name: "head_link"
+    parent_name: "waist_yaw"   # torso is a collapsed fixed link, so the head hangs off waist_yaw
+    pos: [ 0.0, 0.0, 0.45 ]    # waist_yaw sits at z=0.146 -> head ~0.596 above base (neck_pitch joint at 0.480)
+    rot: [ 1.0, 0.0, 0.0, 0.0 ] # w x y z
+
+base_link: "waist_yaw"
+joint_matches:
+  - [ "base_link", "Pelvis" ]
+  - [ "left_hip_pitch", "L_Hip" ]
+  - [ "left_knee", "L_Knee" ]
+  - [ "left_ankle_roll", "L_Ankle" ]
+  - [ "right_hip_pitch", "R_Hip" ]
+  - [ "right_knee", "R_Knee" ]
+  - [ "right_ankle_roll", "R_Ankle" ]
+  - [ "left_shoulder_roll", "L_Shoulder" ]
+  - [ "left_elbow_pitch", "L_Elbow" ]
+  - [ "left_hand_link", "L_Hand" ]
+  - [ "right_shoulder_roll", "R_Shoulder" ]
+  - [ "right_elbow_pitch", "R_Elbow" ]
+  - [ "right_hand_link", "R_Hand" ]
+  - [ "head_link", "Head" ]
+
+# smpl_pose_modifier intentionally omitted: phybot uses the GMR/LAFAN route
+# (BVH -> npz -> pkl), not the SMPL/PHC retarget scripts that consume it.
+# Define it only if smpl_retarget/ is ever pointed at this robot.
