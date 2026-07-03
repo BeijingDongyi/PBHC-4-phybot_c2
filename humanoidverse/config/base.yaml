@@ -1,0 +1,58 @@
+# First we define the global structures that will be used by all the configs.
+defaults:
+  # - base/fabric
+  # - _self_
+  - base/hydra
+  - base/structure
+  - simulator: isaacgym
+  - exp: motion_tracking # or general_tracking 
+  - terrain: terrain_locomotion_plane # or terrain_locomotion(trimesh)
+  - obs: motion_tracking/main
+  - robot: g1/g1_23dof_lock_wrist
+  # - domain_rand: main
+  - domain_rand: dr_nil #首次训练
+  - rewards: motion_tracking/main
+  - _self_
+  
+
+# These are global variables that all levels of the config can access.
+## Experiment setup
+seed: 1
+codebase_version: 1.0  # this is recorded to enable auto-conversion of models between different versions of the codebase
+headless: True
+num_envs: 4096
+
+### Checkpoint logic
+auto_load_latest: False
+checkpoint: null
+
+
+robot:
+  motion:
+    motion_file: "example/motion_data/Roundhouse_kick.pkl"
+
+### Naming and dir structure
+project_name: MT
+experiment_name: TEST
+
+base_dir: logs
+timestamp: ${now:%m%d_%H%M}
+experiment_dir: ${base_dir}/${robot.asset.robot_type}/${experiment_name}/${timestamp}
+save_dir: ${experiment_dir}/.hydra
+
+force_flat_terrain: False
+
+use_wandb: False
+log_task_name: TEST
+
+### Simulation
+device: cuda:0
+sim_type: isaacgym
+env_spacing: 20
+output_dir: ${experiment_dir}/output
+
+eval_overrides:
+  headless: False
+  num_envs: 1
+  auto_load_latest: False
+  use_wandb: False
