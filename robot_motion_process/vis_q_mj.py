@@ -83,7 +83,7 @@ def main(cfg : DictConfig) -> None:
         = 0, 1, 0, set(), 0, 1/30, 1.0, False, False
     # if 'dt' in cfg:
     #     dt = cfg.dt
-    motion_file = "example/motion_data/Roundhouse_kick.pkl" if 'motion_file' not in cfg else cfg.motion_file
+    motion_file = "motion_source/phybot_pkl_contact_mask/kong_cont_mask.pkl" if 'motion_file' not in cfg else cfg.motion_file
     motion_data = joblib.load(motion_file)
     motion_data_keys = list(motion_data.keys())
     curr_motion_key = motion_data_keys[motion_id]
@@ -110,7 +110,7 @@ def main(cfg : DictConfig) -> None:
     resave = False
 
 
-    humanoid_xml = "./description/robots/g1/g1_23dof_lock_wrist.xml"
+    humanoid_xml = "./description/robots/phybot_c2/phybot_fitmotion.xml" if 'humanoid_xml' not in cfg else cfg.humanoid_xml
     print(humanoid_xml)
     
     vis_smpl = False if 'vis_smpl' not in cfg else cfg.vis_smpl
@@ -123,7 +123,7 @@ def main(cfg : DictConfig) -> None:
     if vis_contact: assert 'contact_mask' in curr_motion and not vis_tau
 
     if not vis_smpl:
-        cfg_robot = OmegaConf.load("description/robots/g1/phc_g1_23dof.yaml")
+        cfg_robot = OmegaConf.load("description/robots/phybot_c2/phc_phybot_c2.yaml" if 'robot_cfg' not in cfg else cfg.robot_cfg)
         humanoid_fk = Humanoid_Batch(cfg_robot)  # load forward kinematics model
         pose_aa = torch.from_numpy(curr_motion['pose_aa']).unsqueeze(0)
         root_trans = torch.from_numpy(curr_motion['root_trans_offset']).unsqueeze(0)

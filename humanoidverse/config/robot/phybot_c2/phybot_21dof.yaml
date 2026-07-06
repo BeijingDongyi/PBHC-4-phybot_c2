@@ -98,7 +98,7 @@ robot:
   terminate_after_contacts_on: ["base_link", "hip", "knee", "waist", "shoulder"]
   penalize_contacts_on: ["base_link", "hip", "knee", "waist", "shoulder", "elbow"]
   init_state:
-    pos: [0.0, 0.0, 0.75] # x,y,z [m]  (phybot_mimic value; VERIFY against motion pkl frame 0 in phase 4)
+    pos: [0.0, 0.0, 0.75] # x,y,z [m]  (phybot_mimic; verified: kong pkl frame-0 root z=0.733, RSI overrides this anyway)
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
     lin_vel: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     ang_vel: [0.0, 0.0, 0.0]  # x,y,z [rad/s]

@@ -1,0 +1,44 @@
+# FK config for phybot_c2 used by scripts that run from the REPO ROOT with the
+# humanoidverse Humanoid_Batch copy (e.g. robot_motion_process/vis_q_mj.py via
+# +robot_cfg=description/robots/phybot_c2/phc_phybot_c2.yaml).
+# Counterpart of description/robots/cfg/robot/phybot_c2.yaml, which serves the
+# motion_source/ scripts (their Humanoid_Batch copy resolves assetFileName alone,
+# relative to motion_source/ -- two copies, two path conventions).
+humanoid_type: phybot_c2
+
+body_names: [ 'base_link',
+              'left_hip_pitch', 'left_hip_roll', 'left_hip_yaw', 'left_knee', 'left_ankle_pitch', 'left_ankle_roll',
+              'right_hip_pitch', 'right_hip_roll', 'right_hip_yaw', 'right_knee', 'right_ankle_pitch', 'right_ankle_roll',
+              'waist_yaw',
+              'left_shoulder_pitch', 'left_shoulder_roll', 'left_shoulder_yaw', 'left_elbow_pitch',
+              'right_shoulder_pitch', 'right_shoulder_roll', 'right_shoulder_yaw', 'right_elbow_pitch' ]
+
+dof_names: [ 'left_hip_pitch', 'left_hip_roll', 'left_hip_yaw',
+             'left_knee', 'left_ankle_pitch', 'left_ankle_roll',
+             'right_hip_pitch', 'right_hip_roll', 'right_hip_yaw',
+             'right_knee', 'right_ankle_pitch', 'right_ankle_roll',
+             'waist_yaw',
+             'left_shoulder_pitch', 'left_shoulder_roll', 'left_shoulder_yaw', 'left_elbow_pitch',
+             'right_shoulder_pitch', 'right_shoulder_roll', 'right_shoulder_yaw', 'right_elbow_pitch' ]
+
+right_foot_name: 'right_ankle_roll'
+left_foot_name: 'left_ankle_roll'
+
+asset:
+  assetRoot: "./"
+  assetFileName: "description/robots/phybot_c2/phybot_fitmotion.xml"
+  urdfFileName: "description/robots/phybot_c2/phybot_fitmotion.xml"
+
+extend_config:
+  - joint_name: "left_hand_link"
+    parent_name: "left_elbow_pitch"
+    pos: [ 0.0, 0.0, -0.27 ]
+    rot: [ 1.0, 0.0, 0.0, 0.0 ] # w x y z
+  - joint_name: "right_hand_link"
+    parent_name: "right_elbow_pitch"
+    pos: [ 0.0, 0.0, -0.27 ]
+    rot: [ 1.0, 0.0, 0.0, 0.0 ] # w x y z
+  - joint_name: "head_link"
+    parent_name: "waist_yaw"
+    pos: [ 0.0, 0.0, 0.45 ]
+    rot: [ 1.0, 0.0, 0.0, 0.0 ] # w x y z
