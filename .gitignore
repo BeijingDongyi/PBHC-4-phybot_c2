@@ -2,7 +2,8 @@ __*/
 
 
 
-isaacgym/
+# IsaacGym SDK if placed in repo root (NOT humanoidverse/simulator/isaacgym source!)
+/isaacgym/
 isaac-gym-preview-4
 
 *.pdf
