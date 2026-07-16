@@ -40,7 +40,7 @@ domain_rand:
   added_mass_range : [-5., 10.]
 
   randomize_torque_rfi : True
-  use_rao : True
+  use_rao : False
   rao_lim : 0.001
   rfi_lim : 0.001
   randomize_rfi_lim : True

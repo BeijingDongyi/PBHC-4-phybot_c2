@@ -44,7 +44,7 @@ env:
       terminate_when_dof_far_curriculum:
         enable: True
         init: 3.0
-        max: 3.0
+        max: 5.0
         min: 1.0
         degree: 0.000002
         level_down_threshold: 40

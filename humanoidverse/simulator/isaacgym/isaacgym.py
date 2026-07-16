@@ -540,13 +540,21 @@ class IsaacGym(BaseSimulator):
         # randomize base mass
         if self.env_config.domain_rand.randomize_base_mass:
             rng = self.env_config.domain_rand.added_mass_range
-            try:
-                base_index = self._body_list.index("pelvis") # for fixed upper URDF we only have pelvis link
-            except:
-                base_index = self._body_list.index("torso_link")
+            if hasattr(self.env_config.domain_rand, "base_mass_link"):
+                # 显式指定承载体, 供 pelvis/torso_link 都不存在的机器人使用
+                # (phybot: 根节点 base_link 是骨盆, 躯干是 waist_yaw)
+                base_index = self._body_list.index(self.env_config.domain_rand.base_mass_link)
+            else:
+                try:
+                    base_index = self._body_list.index("pelvis") # for fixed upper URDF we only have pelvis link
+                except:
+                    base_index = self._body_list.index("torso_link")
             assert base_index != -1
-            # raise Exception("index 0 is for world, 13 is for torso!")
-            # raise NotImplementedError
+            # 范围下界必须保证质量为正, 否则 IsaacGym 会拿到负质量并给出无声的垃圾物理
+            assert props[base_index].mass + rng[0] > 0, (
+                f"added_mass_range={list(rng)} 会让 {self._body_list[base_index]} "
+                f"({props[base_index].mass:.4f}kg) 变成负质量, 请缩小范围或改用更重的 base_mass_link"
+            )
             rand_mass = np.random.uniform(rng[0], rng[1])
             props[base_index].mass += rand_mass
             self._base_mass_scale[env_id] = rand_mass

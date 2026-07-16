@@ -129,7 +129,7 @@ def main(override_config: OmegaConf):
     from humanoidverse.agents.base_algo.base_algo import BaseAlgo  # noqa: E402
     from humanoidverse.utils.helpers import pre_process_config
     import torch
-    from humanoidverse.utils.inference_helpers import export_policy_as_jit, export_policy_as_onnx, export_policy_and_encoder_as_onnx
+    from humanoidverse.utils.inference_helpers import export_policy_as_jit, export_policy_as_onnx, export_policy_and_encoder_as_onnx, export_policy_as_jit_traced
 
     pre_process_config(config)
 
@@ -192,6 +192,11 @@ def main(override_config: OmegaConf):
             )
         else:
             export_policy_as_onnx(algo.inference_model, exported_policy_path, exported_onnx_name, example_obs_dict)
+
+            # C++ libtorch 部署用的 TorchScript(trace) 版, PhybotSoftware RL_deploy_* 加载这个
+            exported_jit_name = exported_policy_name.replace('.pt', '_deploy.pt')
+            export_policy_as_jit_traced(algo.inference_model, exported_policy_path, exported_jit_name, example_obs_dict)
+            logger.info(f'Exported traced jit policy to: {os.path.join(exported_policy_path, exported_jit_name)}')
 
         logger.info(f'Exported policy as onnx to: {os.path.join(exported_policy_path, exported_onnx_name)}')
 

@@ -210,6 +210,10 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
             self.lower_body_id = [self.simulator._body_list.index(link) for link in self.config.robot.motion.lower_body_link]
         if "upper_body_link" in self.config.robot.motion:
             self.upper_body_id = [self.simulator._body_list.index(link) for link in self.config.robot.motion.upper_body_link]
+        if "jump_body_link" in self.config.robot.motion:
+            self.jump_body_id = self.simulator._body_list.index(self.config.robot.motion.jump_body_link)
+        else:
+            self.jump_body_id = 0 # root body
         if self.config.resample_motion_when_training:
             self.resample_time_interval = np.ceil(self.config.resample_time_interval_s / self.dt)
             
@@ -342,7 +346,8 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
                 
                 
         if self.config.termination.terminate_when_dof_far:
-            reset_buf_dof_far = torch.any(torch.norm(self.dif_joint_angles, dim=-1) > self.terminate_when_dof_far_threshold, dim=-1)
+            # reset_buf_dof_far = torch.any(torch.norm(self.dif_joint_angles, dim=-1) > self.terminate_when_dof_far_threshold, dim=-1)
+            reset_buf_dof_far = torch.norm(self.dif_joint_angles, dim=-1) > self.terminate_when_dof_far_threshold
             self.reset_buf_terminate_by["dof_far"] = reset_buf_dof_far
             self.reset_buf |= reset_buf_dof_far
             # log current dof far threshold
@@ -709,6 +714,16 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
         self._obs_local_ref_rigid_body_pos = local_ref_rigid_body_pos_flat.view(env_batch_size, -1) # (num_envs, num_rigid_bodies*3)
 
 
+        ########## Motion-frame Ref Rigid Body Pos ##########
+            # Same as above, but anchored on the env origin instead of the robot root, so the
+            # reference carries no feedback about where the robot currently is. Subtracting
+            # env_origins is what keeps this comparable across envs: ref_body_pos_extend is a
+            # world position and the envs sit on a grid spacing metres apart.
+        motionframe_ref_rigid_body_pos = ref_body_pos_extend.view(env_batch_size, -1, 3) - self.env_origins.view(env_batch_size, 1, 3)
+        motionframe_ref_rigid_body_pos_flat = my_quat_rotate(heading_inv_rot_expand.view(-1, 4), motionframe_ref_rigid_body_pos.view(-1, 3))
+        self._obs_local_ref_rigid_body_pos_motionframe = motionframe_ref_rigid_body_pos_flat.view(env_batch_size, -1) # (num_envs, num_rigid_bodies*3)
+
+
 
 
         global_ref_body_vel = ref_body_vel_extend.view(env_batch_size, -1, 3)
@@ -946,6 +961,9 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
     
     def _get_obs_local_ref_rigid_body_pos(self):
         return self._obs_local_ref_rigid_body_pos
+
+    def _get_obs_local_ref_rigid_body_pos_motionframe(self):
+        return self._obs_local_ref_rigid_body_pos_motionframe
 
     def _get_obs_local_ref_rigid_body_pos_relyaw(self):
         # print(self._obs_local_ref_rigid_body_pos_relyaw.mean(),self._obs_local_ref_rigid_body_pos_relyaw.std())
@@ -1217,7 +1235,19 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
         
         self._update_adaptive_sigma(feet_dist, 'teleop_feet_pos')
         return r_feet
-    
+
+    def _reward_teleop_jump_height(self):
+        # Paid only while the reference itself is airborne, so the term cannot be
+        # farmed by bouncing at arbitrary times.
+        ref_flight = (self.ref_contact_mask.sum(dim=-1) < 0.5).float()
+        # dif_global_body_pos is ref minus actual: positive z means the robot is
+        # below the reference. Overshoot is left to the tracking rewards.
+        height_deficit = self.dif_global_body_pos[:, self.jump_body_id, 2].clamp(min=0.0)
+        # Linear, not exp(-e/sigma): the ramp keeps a constant gradient even when the
+        # robot is nowhere near the reference apex, which is where a jump has to start.
+        r_jump = 1.0 - (height_deficit / self.config.rewards.jump_height_deficit_range).clamp(max=1.0)
+        return r_jump * ref_flight
+
     def _reward_teleop_body_rotation_extend(self):
         rotation_diff = self.dif_global_body_rot
         diff_body_rot_dist = (rotation_diff**2).mean(dim=-1).mean(dim=-1)

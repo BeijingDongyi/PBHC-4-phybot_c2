@@ -10,6 +10,30 @@ def export_policy_as_jit(actor_critic, path, exported_policy_name):
         traced_script_module = torch.jit.script(model)
         traced_script_module.save(path)
 
+def export_policy_as_jit_traced(inference_model, path, exported_policy_name, example_obs_dict):
+        """TorchScript(trace) 导出, 供 C++ libtorch 部署 (PhybotSoftware RL_deploy_*):
+        forward(actor_obs[1,N]) -> action[1,num_actions] (act_inference 确定性均值)。
+        注意 export_policy_as_jit 的 script 版不可用: PPOActor.forward 是 NotImplementedError。
+        """
+        os.makedirs(path, exist_ok=True)
+        path = os.path.join(path, exported_policy_name)
+
+        actor = copy.deepcopy(inference_model['actor']).to('cpu')
+
+        class PPOWrapper(nn.Module):
+            def __init__(self, actor):
+                super(PPOWrapper, self).__init__()
+                self.actor = actor
+
+            def forward(self, actor_obs):
+                return self.actor.act_inference(actor_obs)
+
+        wrapper = PPOWrapper(actor)
+        example_input = example_obs_dict["actor_obs"].to('cpu')
+        with torch.no_grad():
+            traced = torch.jit.trace(wrapper, example_input)
+        traced.save(path)
+
 def export_policy_as_onnx(inference_model, path, exported_policy_name, example_obs_dict):
         os.makedirs(path, exist_ok=True)
         path = os.path.join(path, exported_policy_name)

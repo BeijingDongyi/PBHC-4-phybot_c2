@@ -272,18 +272,21 @@ class LeggedRobotBase(BaseTask):
         # self.actions += torch.randn_like(self.actions) * 0.01
         # self.actions *= 1 + torch.randn_like(self.actions) * 0.01
 
+        #记录有多少个动作触碰了边界被裁剪
         self.log_dict["action_clip_frac"] = (
                 self.actions.abs() == clip_action_limit
             ).sum() / self.actions.numel()
 
         if self.config.domain_rand.randomize_ctrl_delay:
+            #每次新动作到了，把所有旧动作往后挪一格
             self.action_queue[:, 1:] = self.action_queue[:, :-1].clone()
             self.action_queue[:, 0] = self.actions.clone()
+            #从队列取延迟后的动作
             self.actions_after_delay = self.action_queue[torch.arange(self.num_envs), self.action_delay_idx].clone()
         else:
             self.actions_after_delay = self.actions.clone()
 
-
+    #将力矩施加到仿真器，推进物理仿真
     def _physics_step(self):
         self.render()
         for _ in range(self.config.simulator.config.sim.control_decimation):
@@ -294,7 +297,9 @@ class LeggedRobotBase(BaseTask):
         self.torques = self._compute_torques(self.actions_after_delay).view(self.torques.shape)
         self.simulator.apply_torques_at_dof(self.torques)
 
+    #后处理函数，更新状态、算奖励、判断是否reset、重置环境、生成新观测
     def _post_physics_step(self):
+        #读取机器人最新状态
         self._refresh_sim_tensors()
         self.episode_length_buf += 1
         # update counters
