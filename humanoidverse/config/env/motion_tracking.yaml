@@ -33,13 +33,13 @@ env:
       terminate_when_close_to_dof_vel_limit: 0.25
       terminate_when_close_to_torque_limit: 0.25
     termination_curriculum:
-      terminate_when_motion_far_curriculum: True
+      terminate_when_motion_far_curriculum: True 
       terminate_when_motion_far_initial_threshold: 1.5
       terminate_when_motion_far_threshold_max: 2.0
       terminate_when_motion_far_threshold_min: 0.3
       terminate_when_motion_far_curriculum_degree: 0.000025
-      terminate_when_motion_far_curriculum_level_down_threshold: 40
-      terminate_when_motion_far_curriculum_level_up_threshold: 42
+      terminate_when_motion_far_curriculum_level_down_threshold: 100
+      terminate_when_motion_far_curriculum_level_up_threshold: 120
 
       terminate_when_dof_far_curriculum:
         enable: True
@@ -53,14 +53,14 @@ env:
     resample_motion_when_training: False
     resample_time_interval_s: 2000
 
-    noise_to_initial_level: 0
+    noise_to_initial_level: 0 
     init_noise_scale: 
-      dof_pos: 0.1
+      dof_pos: 0.1 
       dof_vel: 0.15
-      root_pos: 0.05
-      root_rot: 10 # degree, * 3.14 / 180
-      root_vel: 0.01
-      root_ang_vel: 0.01
+      root_pos: 0.05 
+      root_rot: 10 # default: 10 degree, * 3.14 / 180 均匀，非高斯
+      root_vel: 0.01 
+      root_ang_vel: 0.01 
 
     use_teleop_control: False
     enforce_randomize_motion_start_eval: False

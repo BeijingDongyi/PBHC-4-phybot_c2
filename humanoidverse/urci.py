@@ -31,13 +31,14 @@ import onnxruntime as ort
 import numpy as np
 from utils.devtool import pdb_decorator
 
-@hydra.main(config_path="config", config_name="base_eval")
+@hydra.main(config_path="config", config_name="base_urci")
 def main(override_config: OmegaConf):
     """
     Grammar:
     1. Single  Policy Method
-        python humanoidverse/urci.py +simulator=mujoco +checkpoint=/path/to/checkpoint.onnx
-        python humanoidverse/urci.py +simulator=real +checkpoint=/path/to/checkpoint.onnx
+        # simulator=mujoco / opt=record / log_task_name 都在 config/base_urci.yaml 里了
+        python humanoidverse/urci.py +checkpoint=/path/to/checkpoint.onnx
+        python humanoidverse/urci.py simulator=real +checkpoint=/path/to/checkpoint.onnx
             simulator.config.sim.fps=500 simulator.config.sim.control_decimation=10
             robot.asset.xml_file="g1/g1_23dof_lock_wrist_phys_inertia.xml"
         $EVALMJC=_external_sin

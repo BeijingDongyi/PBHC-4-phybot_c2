@@ -1,0 +1,31 @@
+# @package _global_
+
+# urci.py (mujoco sim2sim / 实机部署) 的入口配置。
+# 把每次都要敲的那几个参数固化在这里, 命令行只剩 checkpoint:
+#
+#   python humanoidverse/urci.py checkpoint=path/to/model.onnx
+#
+# 下面这些 key 都已经在配置里了, 临时改都不用加 +:
+#   deploy.speed=2.0      播放倍速(1.0=实时, null=不限速)
+#   deploy.render_fps=30  窗口刷新率上限
+#   deploy.render=False   不开窗口
+#   simulator=isaacgym    换模拟器
+#   log_task_name=locomotion   部署 locomotion 策略
+#   ~opt                  去掉录制
+
+defaults:
+  - base_eval
+  - simulator: mujoco
+  - opt: record
+  # deploy/single.yaml 里是顶层的 deploy:/env: 两个 key, 所以要 @_global_,
+  # 否则 hydra 会按组名再包一层, 变成 deploy.deploy.xxx。
+  # urci.py 里还会再 load 一次同一个文件并 merge, 那次在 CLI override 之前, 不冲突。
+  - deploy@_global_: single
+  - _self_
+
+# urci 用这个字段判断要不要加载 motion lib(URCIRobot.__init__ 里
+# `if cfg.log_task_name == "motion_tracking"`)。而 base.yaml 的默认值是 TEST,
+# 训练时没显式覆盖的话, checkpoint 里冻结的就是 TEST, motion lib 不会被加载,
+# 报错 'MujocoRobot' object has no attribute 'ref_motion_phase'。
+# 这里统一按 motion tracking 部署; 部署 locomotion 策略时改成 log_task_name=locomotion。
+log_task_name: motion_tracking

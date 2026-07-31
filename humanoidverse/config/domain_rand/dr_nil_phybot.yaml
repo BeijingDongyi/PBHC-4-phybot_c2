@@ -14,7 +14,8 @@ domain_rand:
   max_push_vel_xy : 0.001
 
   randomize_base_com : True
-  base_com_range: #kg
+  base_com_link : waist_yaw
+  base_com_range: #m
       x : [-0.001,0.001]
       y : [-0.001,0.001]
       z : [-0.001,0.001]

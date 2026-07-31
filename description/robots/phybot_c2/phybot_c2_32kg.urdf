@@ -9,7 +9,7 @@
         xyz="-0.00024439 -5.2676E-07 0.024482"
         rpy="0 0 0" />
       <mass
-        value="7.2436" />
+        value="3.2436" />
       <inertia
         ixx="0.01455024"
         ixy="0"
@@ -69,7 +69,7 @@
           rgba="0.8902 0.8902 0.91373 1" />
       </material>
     </visual>
-    <!-- <collision>
+    <collision>
       <origin
         xyz="0 0 0"
         rpy="0 0 0" />
@@ -77,7 +77,7 @@
         <mesh
           filename="meshes/left_hip_pitch.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
   <joint
     name="left_hip_pitch"
@@ -94,7 +94,7 @@
     <limit
       lower="-3.05"
       upper="2.09"
-      effort="160"
+      effort="200"
       velocity="99.21" />
   </joint>
   <link
@@ -149,7 +149,7 @@
     <limit
       lower="-0.44"
       upper="3.05"
-      effort="100"
+      effort="80"
       velocity="98.9" />
   </joint>
   <link
@@ -206,7 +206,7 @@
     <limit
       lower="-2.53"
       upper="2.53"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -263,7 +263,7 @@
     <limit
       lower="-0.05"
       upper="2.36"
-      effort="100"
+      effort="80"
       velocity="98.9" />
   </joint>
   <link
@@ -318,7 +318,7 @@
     <limit
       lower="-1.57"
       upper="1.57"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -363,20 +363,20 @@
     <collision name="left_ankle_roll_1">
         <origin rpy="0 1.57 0" xyz="0.04 -0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.15" radius="0.01"/>
+            <cylinder length="0.18" radius="0.012"/>
         </geometry>
     </collision>
     <collision name="left_ankle_roll_2">
         <origin rpy="0 1.57 0" xyz="0.04 0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.15" radius="0.01"/>
+            <cylinder length="0.18" radius="0.012"/>
         </geometry>
     </collision>
-
-      <collision name="left_ankle_roll_3">
+    <!-- 为了减少脚尖着地而加的中间杠，如无必要可去掉，右脚同理 -->
+    <collision name="left_ankle_roll_3">                
         <origin rpy="0 1.57 0" xyz="0.04 0.0 -0.04"/>
         <geometry>
-            <cylinder length="0.20" radius="0.01"/>
+            <cylinder length="0.22" radius="0.012"/>
         </geometry>
     </collision>
   </link>
@@ -395,13 +395,9 @@
     <limit
       lower="-1.13"
       upper="1.13"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
-
-
-
-
   <link
     name="right_hip_pitch">
     <inertial>
@@ -432,7 +428,7 @@
           rgba="0.890196078431372 0.890196078431372 0.913725490196078 1" />
       </material>
     </visual>
-    <!-- <collision>
+    <collision>
       <origin
         xyz="0 0 0"
         rpy="0 0 0" />
@@ -440,7 +436,7 @@
         <mesh
           filename="meshes/right_hip_pitch.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
   <joint
     name="right_hip_pitch"
@@ -457,7 +453,7 @@
     <limit
       lower="-3.05"
       upper="2.09"
-      effort="160"
+      effort="200"
       velocity="99.21" />
   </joint>
   <link
@@ -512,7 +508,7 @@
     <limit
       lower="-3.05"
       upper="0.44"
-      effort="100"
+      effort="80"
       velocity="98.9" />
   </joint>
   <link
@@ -569,7 +565,7 @@
     <limit
       lower="-2.53"
       upper="2.53"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -626,7 +622,7 @@
     <limit
       lower="-0.05"
       upper="2.36"
-      effort="100"
+      effort="80"
       velocity="98.9" />
   </joint>
   <link
@@ -681,7 +677,7 @@
     <limit
       lower="-1.57"
       upper="1.57"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -717,20 +713,20 @@
     <collision name="right_ankle_roll_1">
         <origin rpy="0 1.57 0" xyz="0.04 -0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.15" radius="0.01"/>
+            <cylinder length="0.18" radius="0.012"/>
         </geometry>
     </collision>
     <collision name="right_ankle_roll_2">
         <origin rpy="0 1.57 0" xyz="0.04 0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.15" radius="0.01"/>
+            <cylinder length="0.18" radius="0.012"/>
         </geometry>
     </collision>
 
     <collision name="right_ankle_roll_3">
         <origin rpy="0 1.57 0" xyz="0.04 0.0 -0.04"/>
         <geometry>
-            <cylinder length="0.20" radius="0.01"/>
+            <cylinder length="0.22" radius="0.012"/>
         </geometry>
     </collision>
   </link>
@@ -749,11 +745,9 @@
     <limit
       lower="-1.13"
       upper="1.13"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
-
-
   <link
     name="waist_yaw">
     <inertial>
@@ -809,7 +803,7 @@
     <limit
       lower="-2.62"
       upper="2.62"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -819,7 +813,7 @@
         xyz="-0.00191626933032615 0.000185029624198631 0.0482159938868043"
         rpy="0 0 0" />
       <mass
-        value="11.89499645954187" />
+        value="7.89499645954187" />
       <inertia
         ixx="0.07569275"
         ixy="0.00000722"
@@ -917,7 +911,7 @@
     <limit
       lower="-2.62"
       upper="2.62"
-      effort="30"
+      effort="9"
       velocity="98.16" />
   </joint>
   <link
@@ -927,7 +921,7 @@
         xyz="0.000251366786067411 -0.00969689232150911 0.065443538650813"
         rpy="0 0 0" />
       <mass
-        value="0.05" />
+        value="2.36" />
       <inertia
         ixx="0.00310958"
         ixy="-0.0"
@@ -972,7 +966,7 @@
     <limit
       lower="-0.61"
       upper="0.61"
-      effort="30"
+      effort="9"
       velocity="98.16" />
   </joint>
   <link
@@ -1028,9 +1022,9 @@
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="90"
+      lower="-3.58"
+      upper="2.01"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -1083,9 +1077,9 @@
     <axis
       xyz="1 0 0" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="90"
+      lower="-0.35"
+      upper="3.05"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -1140,9 +1134,9 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="90"
+      lower="-2.53"
+      upper="2.53"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -1199,30 +1193,9 @@
     <limit
       lower="-2.36"
       upper="0"
-      effort="90"
+      effort="58"
       velocity="98.16" />
   </joint>
-
-    <link name="left_wrist_yaw">
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0" />
-        <geometry>
-          <!-- 一个很小的球，纯标志用 -->
-          <sphere radius="0.05" />
-        </geometry>
-        <material name="marker_color">
-          <color rgba="1 0 0 1" />
-        </material>
-      </visual>
-    </link>
-
-    <joint name="left_wrist_yaw" type="fixed">
-      <parent link="left_elbow_pitch"/>
-      <child link="left_wrist_yaw"/>
-      <origin xyz="0 0 -0.27" rpy="0 0 0"/>
-    </joint>
-
-
   <link
     name="right_shoulder_pitch">
     <inertial>
@@ -1276,9 +1249,9 @@
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="90"
+      lower="-3.58"
+      upper="2.01"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -1331,9 +1304,9 @@
     <axis
       xyz="1 0 0" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="90"
+      lower="-3.05"
+      upper="0.35"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -1388,9 +1361,9 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="90"
+      lower="-2.53"
+      upper="2.53"
+      effort="58"
       velocity="98.37" />
   </joint>
   <link
@@ -1447,26 +1420,7 @@
     <limit
       lower="-2.36"
       upper="0"
-      effort="90"
+      effort="58"
       velocity="98.37" />
   </joint>
-
-    <link name="right_wrist_yaw">
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0" />
-        <geometry>
-          <!-- 一个很小的球，纯标志用 -->
-          <sphere radius="0.05" />
-        </geometry>
-        <material name="marker_color">
-          <color rgba="1 0 0 1" />
-        </material>
-      </visual>
-    </link>
-
-    <joint name="right_wrist_yaw" type="fixed">
-      <parent link="right_elbow_pitch"/>
-      <child link="right_wrist_yaw"/>
-      <origin xyz="0 0 -0.27" rpy="0 0 0"/>
-    </joint>
 </robot>

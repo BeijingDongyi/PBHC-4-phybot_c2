@@ -10,10 +10,11 @@
 #   PhybotSoftware_c2/RL_deploy_taichi/config/rl_params.yaml
 #
 # dof limits (lower/upper/vel/effort) are copied verbatim from the training URDF
-# description/robots/phybot_c2/phybot_c2.urdf (left elbow effort fixed 9->58).
-# NOTE (sim2real, phase 6): deploy rl_params.yaml torque_limits disagree with the
-# URDF at both ankle_roll (9 vs 58) and shoulder_yaw (9 vs 58) -- resolve against
-# real motor specs before going to hardware.
+# description/robots/phybot_c2/phybot_c2.urdf (37kg model from dykj_models
+# phybot_c2, synced 2026-07-22; the 32kg values live in
+# phybot_c2.urdf.bak_32kg if we roll back).
+# NOTE (sim2real, phase 6): deploy rl_params.yaml torque_limits were tuned
+# against the 32kg URDF -- resolve against real motor specs before hardware.
 
 defaults:
   - robot_base
@@ -67,6 +68,8 @@ robot:
                        98.37,
                        98.37, 98.37, 98.37, 98.16,
                        98.37, 98.37, 98.37, 98.37]
+  # hll(=32kg 派生)的限位: effort 200/80/58 系、肩 pos ±(2.01/3.05..) —— 与 phybot_c2_hll.urdf 逐 DoF 一致。
+  # 切回 37kg 时需同步改回: effort 160/100/90 系、肩 pos ±3.14。vel 三具相同不用动。
   dof_effort_limit_list: [200.0, 80.0, 58.0, 80.0, 58.0, 58.0,
                           200.0, 80.0, 58.0, 80.0, 58.0, 58.0,
                           58.0,
@@ -173,7 +176,8 @@ robot:
     angular_damping: 0.
     linear_damping: 0.
 
-    urdf_file: "phybot_c2/${robot.asset.robot_type}.urdf"   # asset_root is description/robots
+    urdf_file: "phybot_c2/phybot_c2_hll.urdf"   # asset_root is description/robots
+    # urdf_file: "phybot_c2/${robot.asset.robot_type}.urdf"   # asset_root is description/robots
     usd_file: "phybot_c2/${robot.asset.robot_type}.usd"     # not present; isaacsim only
     xml_file: "phybot_c2/${robot.asset.robot_type}.xml"     # not present yet; needed for mujoco sim2sim (phase 6)
     robot_type: phybot_c2
@@ -250,6 +254,19 @@ robot:
         parent_name: "waist_yaw"  # torso is a collapsed fixed link, head hangs off waist_yaw
         pos: [0.0, 0.0, 0.45]     # waist_yaw at z=0.146 -> head ~0.596 above base
         rot: [1.0, 0.0, 0.0, 0.0] # w x y z
+
+    # urci(mujoco sim2sim) 的 future-motion obs 用的关键 body, 语义对齐 g1 的
+    # [左右膝, 左右踝, 左右肘, 左右手, 头]。不配的话 deploy 会退回 g1 的写死下标并越界。
+    key_body_names:
+      - "left_knee"
+      - "left_ankle_roll"
+      - "right_knee"
+      - "right_ankle_roll"
+      - "left_elbow_pitch"
+      - "right_elbow_pitch"
+      - "left_hand_link"
+      - "right_hand_link"
+      - "head_link"
 
     motion_tracking_link:
       - "left_hand_link"

@@ -756,6 +756,13 @@ class LeggedRobotBase(BaseTask):
         if self.add_noise_currculum:
             self.log_dict["current_noise_curriculum_value"] = torch.tensor(self.current_noise_curriculum_value, dtype=torch.float)
 
+        # 诊断: PhysX 是否真的钳制 URDF 的 velocity limit
+        _dv = self.simulator.dof_vel.abs()
+        self.log_dict["dof_vel_absmax"] = _dv.max()
+        self.log_dict["dof_vel_over_frac"] = (_dv > self.dof_vel_limits * self.soft_dof_vel_curriculum_value).any(dim=1).float().mean()
+
+
+
     def _compute_observations(self):
         """ Computes observations
         """
@@ -985,10 +992,12 @@ class LeggedRobotBase(BaseTask):
     def _reward_limits_dof_vel(self):
         # Penalize dof velocities too close to the limit
         # clip to max error = 1 rad/s per joint to avoid huge penalties
+
+        # default max 1
         if self.use_reward_limits_dof_vel_curriculum:
-            return torch.sum((torch.abs(self.simulator.dof_vel) - self.dof_vel_limits * self.soft_dof_vel_curriculum_value).clip(min=0., max=1.), dim=1)
+            return torch.sum((torch.abs(self.simulator.dof_vel) - self.dof_vel_limits * self.soft_dof_vel_curriculum_value).clip(min=0., max=20.), dim=1)
         else:
-            return torch.sum((torch.abs(self.simulator.dof_vel) - self.dof_vel_limits * self.config.rewards.reward_limit.soft_dof_vel_limit).clip(min=0., max=1.), dim=1)
+            return torch.sum((torch.abs(self.simulator.dof_vel) - self.dof_vel_limits * self.config.rewards.reward_limit.soft_dof_vel_limit).clip(min=0., max=20.), dim=1)
 
     def _reward_limits_torque(self):
         # penalize torques too close to the limit
@@ -1012,15 +1021,19 @@ class LeggedRobotBase(BaseTask):
         reward = is_contact * foot_planar_velocity
         return torch.sum(reward, dim=1)
     
+    # 和feet_air_time抢同一个变量
     def _reward_feet_max_height_for_this_air(self):
         contact = self.simulator.contact_forces[:, self.feet_indices, 2] > 1.
+        # 滤波，这一帧或者上一帧接触都算接触，防抖
         contact_filt = torch.logical_or(contact, self.last_contacts) 
+        # 判断从空中落地
         from_air_to_contact = torch.logical_and(contact_filt, ~self.last_contacts_filt)
         self.last_contacts = contact
         self.last_contacts_filt = contact_filt
         self.feet_air_max_height = torch.max(self.feet_air_max_height, self.simulator._rigid_body_pos[:, self.feet_indices, 2])
-
+        # 惩罚没抬到足够高度，只有落地那一帧留下数值，其余帧变0
         rew_feet_max_height = torch.sum((torch.clamp_min(self.config.rewards.desired_feet_max_height_for_this_air - self.feet_air_max_height, 0)) * from_air_to_contact, dim=1) # reward only on first contact with the ground
+        # 落地后清零
         self.feet_air_max_height *= ~contact_filt
         return rew_feet_max_height
     
@@ -1068,6 +1081,7 @@ class LeggedRobotBase(BaseTask):
         
         return heading_diff_left*self.contacts_filt[:, 0] + heading_diff_right*self.contacts_filt[:, 1]
     
+    #惩罚接触时脚不平
     def _reward_penalty_feet_ori_contact(self):
         left_quat = self.simulator._rigid_body_rot[:, self.feet_indices[0]]
         left_gravity = quat_rotate_inverse(left_quat, self.gravity_vec)

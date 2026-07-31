@@ -38,6 +38,32 @@ def wrap_to_pi_float(angles:float):
     angles -= 2*np.pi * (angles > np.pi)
     return angles
 
+
+# future-motion obs 用的 9 个关键 body, 语义是 [左右膝, 左右踝, 左右肘, 左右手, 头]。
+# g1 上等价于原先写死的 [4, 6, 10, 12, 19, 23, 24, 25, 26]。
+_KEY_BODY_PATTERNS = [
+    ("left", "knee"), ("left", "ankle_roll"),
+    ("right", "knee"), ("right", "ankle_roll"),
+    ("left", "elbow"), ("right", "elbow"),
+    ("left", "hand"), ("right", "hand"),
+    (None, "head"),
+]
+
+
+def _resolve_key_bodies(all_body_names: List[str]) -> List[int]:
+    """按名字在 body 列表里认出那 9 个关键 body, 不依赖具体机器人的下标。"""
+    ids = []
+    for side, part in _KEY_BODY_PATTERNS:
+        hits = [i for i, n in enumerate(all_body_names)
+                if part in n and (side is None or n.startswith(side))]
+        if len(hits) != 1:
+            raise ValueError(
+                f"key body {side or ''}_{part} 在 body 列表里匹配到 {len(hits)} 个: "
+                f"{[all_body_names[i] for i in hits]}。"
+                f"请在 robot.motion.key_body_names 里显式列出 9 个 body 名。")
+        ids.append(hits[0])
+    return ids
+
 class URCIRobot:
     REAL: bool
     BYPASS_ACT: bool
@@ -74,6 +100,11 @@ class URCIRobot:
         self.device: str = "cpu"
         self.dt: float = cfg.deploy.ctrl_dt
         self.timer: int = 0
+
+        # 播放倍速: 1.0=实时, 2.0=两倍速, null/0=不限速(有多快跑多快)。
+        # 只作用于仿真, 实机走 self.REAL 那条固定 dt 的分支。
+        speed = cfg.deploy.get("speed", None)
+        self._pace_dt: float = self.dt / float(speed) if speed else 0.0
         
         
         self.num_actions = cfg.robot.actions_dim
@@ -95,7 +126,6 @@ class URCIRobot:
         else: 
             self.save_motion = False
         self.anchor_index = 0  # root
-        self.key_body_id = [4, 6, 10, 12, 19, 23, 24, 25, 26]
         self.map_dof_to_scale()
         
     def map_dof_to_scale(self):
@@ -199,6 +229,12 @@ class URCIRobot:
                         time.sleep(remain_dt)
                     else:
                         logger.warning(f"Warning! delay = {t2-t1} longer than policy_dt = {self.dt} , skip sleeping")
+                elif self._pace_dt > 0:
+                    # 仿真侧的播放倍速(deploy.speed)。不设的话循环是全速跑的, 一段 6.7s
+                    # 的动作 1.4s 就放完了; 设了就按 dt/speed 补 sleep 对齐墙钟。
+                    remain_dt = self._pace_dt - (t2-t1)
+                    if remain_dt > 0:
+                        time.sleep(remain_dt)
         except RobotExitException as e:
             self.TrySaveMotionFile(pid=cur_pid)
             raise e
@@ -398,16 +434,18 @@ class URCIRobot:
         self.relyaw = current_yaw - self.ref_init_yaw
         
         relyaw_heading_inv_quat = calc_yaw_heading_quat_inv(torch.from_numpy(self.relyaw).to(dtype=torch.float32).unsqueeze(0))
-        relyaw_heading_inv_quat_expand = relyaw_heading_inv_quat.unsqueeze(1).expand(-1, 27, -1).reshape(-1, 4)
+        nbe = self.num_bodies_extend
+        relyaw_heading_inv_quat_expand = relyaw_heading_inv_quat.unsqueeze(1).expand(-1, nbe, -1).reshape(-1, 4)
 
         heading_inv_rot = calc_heading_quat_inv(torch.from_numpy(self.quat).to(dtype=torch.float32).unsqueeze(0), w_last=True) #xyzw
         # # expand to (B*num_rigid_bodies, 4) for fatser computation in jit
-        heading_inv_rot_expand = heading_inv_rot.unsqueeze(1).expand(-1, 27, -1).reshape(-1, 4)
+        heading_inv_rot_expand = heading_inv_rot.unsqueeze(1).expand(-1, nbe, -1).reshape(-1, 4)
 
 
         ref_joint_pos = motion_res["dof_pos"] # [num_envs, num_dofs]
         ref_joint_vel = motion_res["dof_vel"] # [num_envs, num_dofs]
         ref_body_vel_extend = motion_res["body_vel_t"] # [num_envs, num_markers, 3]
+        ref_body_pos_extend = motion_res["rg_pos_t"] # [num_envs, num_markers, 3]
         ref_root_rot = motion_res["root_rot"]  # [1, 4] # xyzw
         ref_root_pos = motion_res["root_pos"]  # [1, 3]
         
@@ -420,8 +458,12 @@ class URCIRobot:
         self.dif_joint_velocities = (ref_joint_vel - self.dq).to(dtype=torch.float32).view(-1)      
         self._obs_global_ref_body_vel = global_ref_body_vel.view(-1) # (num_envs, num_rigid_bodies*3)
         self._obs_local_ref_rigid_body_vel = local_ref_rigid_body_vel_flat.view(-1) # (num_envs, num_rigid_bodies*3)
-        self._obs_local_ref_rigid_body_pos_relyaw = my_quat_rotate(relyaw_heading_inv_quat_expand.view(-1, 4), 
+        self._obs_local_ref_rigid_body_pos_relyaw = my_quat_rotate(relyaw_heading_inv_quat_expand.view(-1, 4),
                                                                    global_ref_body_vel.view(-1, 3)).view(-1)
+        # motion-frame ref body pos: 训练里是 ref_body_pos_extend - env_origins, 而 env 取
+        # motion 时正是以 env_origins 作 offset 的, 两者抵消 => 就是 motion 自身坐标系下的
+        # body 位置。deploy 的 _kick_motion_res 不加 offset, 所以 rg_pos_t 直接就是它。
+        self._obs_local_ref_rigid_body_pos_motionframe = ref_body_pos_extend.reshape(-1).to(dtype=torch.float32)
         
         ref_frame_anchor = (ref_root_pos[0], ref_root_rot[0])
         robot_frame_anchor = self.fn_ref_to_robot_frame(ref_frame_anchor)
@@ -449,7 +491,8 @@ class URCIRobot:
         assert self.cfg is not None or not isinstance(self.cfg, OmegaConf), "cfg is not set"
         
         assert self.num_dofs is not None, "num_dofs is not set"
-        assert self.num_dofs == 23, "In policy level, only 23 dofs are supported for now"
+        assert self.num_dofs == self.num_actions, (
+            f"num_dofs {self.num_dofs} != actions_dim {self.num_actions}")
         assert self.kp is not None and type(self.kp) == np.ndarray and self.kp.shape == (self.num_dofs,), "kp is not set"
         assert self.kd is not None and type(self.kd) == np.ndarray and self.kd.shape == (self.num_dofs,), "kd is not set"
         
@@ -469,7 +512,21 @@ class URCIRobot:
         self.dof_names = self.cfg.robot.dof_names
         self.num_bodies = len(self.body_names)
         self.num_dofs = len(self.dof_names)
-        assert self.num_dofs == 23, "Only 23 dofs are supported for now"
+        # motion lib 的 rg_pos_t / body_vel_t 是 body + extend body(手/头虚拟点),
+        # obs 里所有 rigid_body 项都按这个长度展平。g1=24+3=27, phybot_c2=22+3=25。
+        self.num_bodies_extend = self.num_bodies + len(self.cfg.robot.motion.extend_config)
+
+        # 膝/踝/肘/手/头 9 个关键 body, 只在 future_num_steps>0 的 obs 里用到。
+        # 原来写死的是 g1 的下标, 在 body 数不同的机器人上会越界, 改成按名字解析。
+        extend_names = [e.joint_name for e in self.cfg.robot.motion.extend_config]
+        all_body_names = list(self.body_names) + extend_names
+        key_body_names = self.cfg.robot.motion.get("key_body_names", None)
+        if key_body_names is not None:
+            self.key_body_id = [all_body_names.index(n) for n in key_body_names]
+        else:
+            # 老 checkpoint 冻结的 config 里没有这个字段(urci 读的是 ckpt 目录的
+            # config.yaml, 不是当前 robot yaml), 所以按名字自动认一遍。
+            self.key_body_id = _resolve_key_bodies(all_body_names)
         
         
         dof_init_pose = cfg_init_state.default_joint_angles
@@ -516,17 +573,19 @@ class URCIRobot:
         self.relyaw = np.zeros(1,dtype=np.float32)
         self.dif_joint_angles = torch.zeros(self.num_dofs, dtype=torch.float32)
         self.dif_joint_velocities = torch.zeros(self.num_dofs, dtype=torch.float32)
-        self._obs_global_ref_body_vel = torch.zeros(27*3, dtype=torch.float32)  # 27 rigid bodies, each has 3 velocity components
-        self._obs_local_ref_rigid_body_vel = torch.zeros(27*3, dtype=torch.float32)
-        self._obs_local_ref_rigid_body_pos_relyaw = torch.zeros(27*3, dtype=torch.float32)
+        nbe = self.num_bodies_extend  # g1=27, phybot_c2=25
+        self._obs_global_ref_body_vel = torch.zeros(nbe*3, dtype=torch.float32)  # 每个 rigid body 3 个速度分量
+        self._obs_local_ref_rigid_body_vel = torch.zeros(nbe*3, dtype=torch.float32)
+        self._obs_local_ref_rigid_body_pos_relyaw = torch.zeros(nbe*3, dtype=torch.float32)
+        self._obs_local_ref_rigid_body_pos_motionframe = torch.zeros(nbe*3, dtype=torch.float32)
         self._obs_future_motion_root_height = torch.zeros(1, dtype=torch.float32)
         self._obs_future_motion_roll_pitch = torch.zeros(2, dtype=torch.float32)
         self._obs_future_motion_base_lin_vel = torch.zeros(3, dtype=torch.float32)
         self._obs_future_motion_base_ang_vel = torch.zeros(3, dtype=torch.float32)
         self._obs_future_motion_base_yaw_vel = torch.zeros(1, dtype=torch.float32)
-        self._obs_future_motion_dof_pos = torch.zeros(23, dtype=torch.float32)
-        self._obs_future_motion_local_ref_rigid_body_pos = torch.zeros(27 * 3, dtype=torch.float32)
-        self._obs_future_motion_local_ref_key_body_pos = torch.zeros(9 * 3, dtype=torch.float32)
+        self._obs_future_motion_dof_pos = torch.zeros(self.num_dofs, dtype=torch.float32)
+        self._obs_future_motion_local_ref_rigid_body_pos = torch.zeros(nbe * 3, dtype=torch.float32)
+        self._obs_future_motion_local_ref_key_body_pos = torch.zeros(len(self.key_body_id) * 3, dtype=torch.float32)
         self._obs_next_step_ref_motion = torch.zeros(111, dtype=torch.float32)
         self._obs_anchor_ref_pos = torch.zeros(3, dtype=torch.float32)
         self._obs_anchor_ref_rot = torch.zeros(6, dtype=torch.float32)
@@ -580,8 +639,14 @@ class URCIRobot:
         OmegaConf.save(self.cfg, self.save_motion_dir / "config.yaml")
         
 
-        self._dof_axis = np.load('humanoidverse/utils/motion_lib/dof_axis.npy', allow_pickle=True)
+        # 优先用本机器人自己的 dof_axis; 旧路径下那个是 g1 的 (23,3), 换机器人会 broadcast 失败
+        robot_dof_axis = Path(self.cfg.robot.asset.asset_root) / self.cfg.robot.asset.robot_type / "dof_axis.npy"
+        dof_axis_path = robot_dof_axis if robot_dof_axis.exists() else Path('humanoidverse/utils/motion_lib/dof_axis.npy')
+        logger.info(f"Loading dof_axis from {dof_axis_path}")
+        self._dof_axis = np.load(dof_axis_path, allow_pickle=True)
         self._dof_axis = self._dof_axis.astype(np.float32)
+        assert self._dof_axis.shape[0] == self.num_dofs, (
+            f"dof_axis {self._dof_axis.shape} 与 num_dofs {self.num_dofs} 不匹配: {dof_axis_path}")
 
         self.num_augment_joint = len(self.cfg.robot.motion.extend_config)
         self.motions_for_saving: Dict[str, List[np.ndarray]] = {'root_trans_offset':[], 'pose_aa':[], 'dof':[], 'root_rot':[], 'actor_obs':[], 'action':[], 'terminate':[],
@@ -717,6 +782,9 @@ class URCIRobot:
     
     def _get_obs_local_ref_rigid_body_pos_relyaw(self):
         return self._obs_local_ref_rigid_body_pos_relyaw
+
+    def _get_obs_local_ref_rigid_body_pos_motionframe(self):
+        return self._obs_local_ref_rigid_body_pos_motionframe
     
     def _get_obs_dif_local_rigid_body_pos(self):
         raise NotImplementedError("Not implemented")
@@ -834,8 +902,9 @@ class URCIRobot:
         root_vel = quat_rotate_inverse(flat_root_rot, flat_root_vel).view(num_steps, 3)
         root_ang_vel = quat_rotate_inverse(flat_root_rot, flat_root_ang_vel).view(num_steps, 3)
 
-        robot_anchor_pos_w_repeat = ref_body_pos_extend[..., self.anchor_index, :][..., None, :].repeat(1, 27, 1)
-        robot_anchor_quat_w_repeat = ref_body_rot_extend[..., self.anchor_index, :][..., None, :].repeat(1, 27, 1)
+        nbe = self.num_bodies_extend
+        robot_anchor_pos_w_repeat = ref_body_pos_extend[..., self.anchor_index, :][..., None, :].repeat(1, nbe, 1)
+        robot_anchor_quat_w_repeat = ref_body_rot_extend[..., self.anchor_index, :][..., None, :].repeat(1, nbe, 1)
         local_ref_key_body_pos = quat_apply(
             quat_inverse(robot_anchor_quat_w_repeat, w_last=True),
             ref_body_pos_extend - robot_anchor_pos_w_repeat,

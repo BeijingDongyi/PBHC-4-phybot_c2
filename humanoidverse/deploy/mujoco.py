@@ -176,31 +176,44 @@ class ViewerPlugin:
             self._frame_size = (viewport.height // self.macro_block_size * self.macro_block_size,  #
                                 viewport.width // self.macro_block_size * self.macro_block_size)
     macro_block_size = 16
+    _last_render_t = 0.0
+    _render_min_dt = 0.0   # 由 MujocoRobot.__init__ 按 deploy.render_fps 设置
+
     def render_step(self):
-        if self.is_render:
-            # if self.viewer.is_running():
-            if self.viewer.is_alive:
-                self.viewer.render()
-                # self.viewer.sync()
-                if self.is_recording and (time.time() - self.start_time >= 1/self.fps):
-                    self.start_time = time.time()
-                    mujoco.mjr_readPixels(self._frame_buffer, None, self.viewer.viewport, self.viewer.ctx)
-                    # imageio.imwrite('frame.png', frame[::-1])
-                    # breakpoint()
-                    
-                    self._video_buffer.append(self._frame_buffer[::-1].copy()[:self._frame_size[0], :self._frame_size[1]])
-            else:
-                if self.is_recording:
-                    logger.info("Mujoco: Saving video ...")
-                    
-                    model_path:Path = self.cfg.checkpoint
-                    model_id = model_path.stem.replace('model_', 'ckpt_')
-                    video_path:Path = model_path.parent.parent / 'renderings' / model_id / f'video_{time.strftime("%Y%m%d_%H%M%S")}.mp4'
-                    video_path.parent.mkdir(parents=True, exist_ok=True)
-                    import imageio
-                    imageio.mimsave(video_path, self._video_buffer, fps=self.fps, macro_block_size=self.macro_block_size)
-                    logger.info(f"Video saved to {video_path}")
-                raise RobotExitException("Mujoco Robot Exit")
+        if not self.is_render:
+            return
+
+        # 注意: 这个函数是在 _apply_action 的 decimation 循环里调的, 也就是每个物理
+        # 子步(默认 500Hz)都会进来一次。viewer.render() 一次要十几 ms, 不节流的话
+        # 渲染会把仿真拖到 0.1x 实时。这里按墙钟限制到 deploy.render_fps。
+        now = time.time()
+        if now - self._last_render_t < self._render_min_dt:
+            return
+        self._last_render_t = now
+
+        # if self.viewer.is_running():
+        if self.viewer.is_alive:
+            self.viewer.render()
+            # self.viewer.sync()
+            if self.is_recording and (time.time() - self.start_time >= 1/self.fps):
+                self.start_time = time.time()
+                mujoco.mjr_readPixels(self._frame_buffer, None, self.viewer.viewport, self.viewer.ctx)
+                # imageio.imwrite('frame.png', frame[::-1])
+                # breakpoint()
+
+                self._video_buffer.append(self._frame_buffer[::-1].copy()[:self._frame_size[0], :self._frame_size[1]])
+        else:
+            if self.is_recording:
+                logger.info("Mujoco: Saving video ...")
+
+                model_path:Path = self.cfg.checkpoint
+                model_id = model_path.stem.replace('model_', 'ckpt_')
+                video_path:Path = model_path.parent.parent / 'renderings' / model_id / f'video_{time.strftime("%Y%m%d_%H%M%S")}.mp4'
+                video_path.parent.mkdir(parents=True, exist_ok=True)
+                import imageio
+                imageio.mimsave(video_path, self._video_buffer, fps=self.fps, macro_block_size=self.macro_block_size)
+                logger.info(f"Video saved to {video_path}")
+            raise RobotExitException("Mujoco Robot Exit")
         
 
 class MujocoRobot(URCIRobot, ViewerPlugin):
@@ -260,12 +273,26 @@ class MujocoRobot(URCIRobot, ViewerPlugin):
             self.is_render = True
             if cfg.__contains__('recording') and cfg.recording:
                 self.is_recording = True
+            # 渲染节流上限, 详见 ViewerPlugin.render_step。0 或负数 = 不节流(老行为)。
+            render_fps = float(cfg.deploy.get("render_fps", 50))
+            if self.is_recording:
+                render_fps = max(render_fps, self.fps)  # 别让节流卡住录像的取帧
+            self._render_min_dt = 1.0 / render_fps if render_fps > 0 else 0.0
+            logger.info(f"render_fps: {render_fps} (物理仍按 {1/self.sim_dt:.0f}Hz 推进)")
             self._make_viewer()
         else:
             self.is_render = False
             
         self.num_ctrl = self.data.ctrl.shape[0]
         assert self.num_ctrl == self.num_actions, f"Number of control DOFs {self.num_ctrl} does not match number of actions {self.num_actions}"
+
+        if self.num_dofs == len(self._MOTOR_OFFSET_G1_23DOF):
+            self._motor_offset = self._MOTOR_OFFSET_G1_23DOF
+        else:
+            self._motor_offset = np.zeros(self.num_dofs)
+            if self.RAND_OFFSET:
+                logger.warning(f"RAND_OFFSET 打开了, 但这具机器人({self.num_dofs} dof)"
+                               f"没有标定过电机零位偏置, 按全 0 处理")
         
         # noise init
         if self.RAND_IMU:
@@ -399,7 +426,9 @@ class MujocoRobot(URCIRobot, ViewerPlugin):
                                 f"dq\t\t: {self.dq[motor_idx]}\n")
                 # breakpoint()  
         
-    _motor_offset = np.array([
+    # g1 23dof 的电机零位偏置(deg->rad), 只在 RAND_OFFSET 打开时用。
+    # 其它机器人没有标定过, 在 __init__ 里退化成全 0, 长度按 num_dofs 走。
+    _MOTOR_OFFSET_G1_23DOF = np.array([
         3, 0.5, 2, -0.5, -1, 1,
         -2, 1, -.3, 1, 0.3, 0.1,
         0, 0, 0,

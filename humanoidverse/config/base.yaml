@@ -8,9 +8,12 @@ defaults:
   - exp: motion_tracking # or general_tracking 
   - terrain: terrain_locomotion_plane # or terrain_locomotion(trimesh)
   - obs: motion_tracking/main
-  # - robot: g1/g1_23dof_lock_wrist
-  - robot: phybot_c2/phybot_21dof
-  - domain_rand: main_phybot
+  - robot: g1/g1_23dof_lock_wrist
+  # - robot: phybot_c2/phybot_21dof
+  - domain_rand: main
+  # - domain_rand: dr_nil
+  
+  # - domain_rand: main_phybot
   # - domain_rand: dr_nil_phybot #首次训练
   - rewards: motion_tracking/main
   - _self_
@@ -30,7 +33,8 @@ checkpoint: null
 
 robot:
   motion:
-    motion_file: "motion_source/phybot_pkl_contact_mask/kong_cont_mask.pkl"
+    # motion_file: "motion_source/phybot_pkl_contact_mask/kongti_test_cont_mask.pkl"
+    motion_file: "motion_source/g1_pkl_contact_mask/data_2026-06-11_15-22-31_g1_v3_collisionfree_contactfixed_preview_cont_mask.pkl"
 
 ### Naming and dir structure
 project_name: MT

@@ -19,10 +19,11 @@ domain_rand:
   max_push_vel_xy : 0.1
 
   randomize_base_com : True
-  base_com_range: #kg
+  base_com_link : waist_yaw
+  base_com_range: #m
       x : [-0.05, 0.05]
       y : [-0.05, 0.05]
-      z : [-0.08, 0.08]
+      z : [-0.03, 0.03]
 
   randomize_link_mass : True
   link_mass_range : [0.9, 1.1] # *factor
@@ -68,6 +69,7 @@ domain_rand:
     joint_idx: [4,5, 10,11] # phybot ankle pitch/roll pairs; g1's waist roll/pitch (13,14) don't exist here
 
   randomize_friction : True
+  # friction_range : [0.1, 0.5]
   friction_range : [0.2, 1.2]
   randomize_restitution : False
   restitution_range : [0.0, 1.0]

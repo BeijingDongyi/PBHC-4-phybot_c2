@@ -7,6 +7,24 @@ eval_log_dir: logs_eval/${eval_name}/${eval_timestamp}
 checkpoint: null
 device: cuda:0
 
+# eval 时跑够 n_runs 遍动作后弹窗画最后一遍, 布局对齐
+# PhybotSoftware_c2/tools/plot_deploy_log.py。默认关, 加 plot_joints=True 打开。
+plot_joints: false
+
+algo:
+  config:
+    eval_callbacks:
+      eval_joints:
+        _target_: humanoidverse.agents.callbacks.analysis_plot_eval_joints.AnalysisPlotEvalJoints
+        config:
+          enable: ${plot_joints}
+          env_idx: 0
+          n_runs: 2       # 跑够几遍再画, 画的是第 n 遍(前面几遍常常是摔了重来)
+          save_png: true  # 同时存一份到 <checkpoint 目录>/eval_plots/
+          save_dir: null  # 覆盖存图目录
+          block: false    # true=出图后阻塞, gym viewer 会一起卡住
+          joints: null    # null=全部关节; 也可以给名字列表只画一部分
+
 hydra:
   run:
     dir: ${eval_log_dir}

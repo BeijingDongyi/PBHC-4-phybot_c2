@@ -83,14 +83,14 @@ def main(cfg : DictConfig) -> None:
         = 0, 1, 0, set(), 0, 1/30, 1.0, False, False
     # if 'dt' in cfg:
     #     dt = cfg.dt
-    motion_file = "motion_source/phybot_pkl_contact_mask/kong_cont_mask.pkl" if 'motion_file' not in cfg else cfg.motion_file
+    motion_file = "motion_source/phybot_pkl_contact_mask/kongti_test_cont_mask.pkl" if 'motion_file' not in cfg else cfg.motion_file
     motion_data = joblib.load(motion_file)
     motion_data_keys = list(motion_data.keys())
     curr_motion_key = motion_data_keys[motion_id]
     curr_motion = motion_data[curr_motion_key]
     print(motion_file)
     
-    speed = 1.0 if 'speed' not in cfg else cfg.speed
+    speed = 1 if 'speed' not in cfg else cfg.speed
     hang = False if 'hang' not in cfg else cfg.hang
     if 'fps' in curr_motion:
         dt = 1.0 / curr_motion['fps']
@@ -142,9 +142,9 @@ def main(cfg : DictConfig) -> None:
     # breakpoint()
     with mujoco.viewer.launch_passive(mj_model, mj_data, key_callback=key_call_back) as viewer:
         
-        viewer.cam.lookat[:] = np.array([0,0,0.7])
+        viewer.cam.lookat[:] = np.array([0,1,0.7])
         viewer.cam.distance = 3.0        
-        viewer.cam.azimuth = 180         
+        viewer.cam.azimuth = -90         
         viewer.cam.elevation = -30                      # 负值表示从上往下看viewer
         
         for _ in range(50):

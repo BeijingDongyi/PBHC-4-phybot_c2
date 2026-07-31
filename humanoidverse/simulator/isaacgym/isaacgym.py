@@ -457,15 +457,21 @@ class IsaacGym(BaseSimulator):
         if self.env_config.domain_rand.randomize_base_com:
             if env_id<3:
                 logger.debug("randomizing base com")
-            try:
-                torso_index = self._body_list.index("torso_link")
-            except:
+            if "base_com_link" in self.env_config.domain_rand:
+                torso_index = self._body_list.index(self.env_config.domain_rand.base_com_link)
+            else:
                 try:
-                    torso_index = self._body_list.index("pelvis") # for fixed upper URDF we only have pelvis link
+                    torso_index = self._body_list.index("torso_link")
                 except:
-                    torso_index = 0 # robots without torso_link/pelvis (e.g. phybot: root body base_link is the trunk)
+                    try:
+                        torso_index = self._body_list.index("pelvis") # for fixed upper URDF we only have pelvis link
+                    except:
+                        torso_index = 0 # robots without torso_link/pelvis (e.g. phybot: root body base_link is the trunk)
             assert torso_index != -1
-
+            
+            # print(f"torso_index: {torso_index}")
+            # print(f"mass:",props[torso_index].mass)
+            
             com_x_bias = np.random.uniform(self.env_config.domain_rand.base_com_range.x[0], self.env_config.domain_rand.base_com_range.x[1])
             com_y_bias = np.random.uniform(self.env_config.domain_rand.base_com_range.y[0], self.env_config.domain_rand.base_com_range.y[1])
             com_z_bias = np.random.uniform(self.env_config.domain_rand.base_com_range.z[0], self.env_config.domain_rand.base_com_range.z[1])

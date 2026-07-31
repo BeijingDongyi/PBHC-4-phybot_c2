@@ -17,8 +17,8 @@ obs:
       # 各刚体的参考目标位置相对于当前机器人根节点的位置，再转换到机器人当前朝向坐标系
       # local_ref_rigid_body_pos,
       # 各刚体的参考目标位置相对于 env 原点（而非机器人根节点）的位置，再转换到机器人当前朝向坐标系
-      # 不含机器人当前位置信息，是纯前馈的参考轨迹
-      # local_ref_rigid_body_pos_motionframe,
+      # 不含机器人当前位置信息
+      local_ref_rigid_body_pos_motionframe,
       # history,
       history_actor
     ]

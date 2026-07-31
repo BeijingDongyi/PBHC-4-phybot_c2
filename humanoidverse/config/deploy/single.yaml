@@ -6,6 +6,12 @@ deploy:
   SWITCH_EMA: True
 
   render: True
+  # 窗口刷新率上限。render_step 是在物理子步循环里调的, 不限的话每个子步都渲染一次
+  # (500Hz), 会把 mujoco 拖到 0.1x 实时。物理不受影响, 只是少画几帧。0 = 不节流。
+  render_fps: 50
+  # 播放倍速: 1.0=实时, 2.0=两倍速, 0.5=慢放, null=不限速(有多快跑多快, 约 5x)。
+  # 只影响看的节奏, 不改物理; 实机部署走固定 dt, 不受这个影响。
+  speed: 1.0
   defcmd: [0.0, 0.0, 0.0, 0.0]
   heading_cmd: True
 

@@ -27,7 +27,7 @@ import mujoco
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-URDF_PATH = os.path.join(SCRIPT_DIR, "phybot_c2.urdf")
+URDF_PATH = os.path.join(SCRIPT_DIR, "phybot_c2_hll.urdf")
 FITMOTION_PATH = os.path.join(SCRIPT_DIR, "phybot_fitmotion.xml")
 TOL = 1e-6
 

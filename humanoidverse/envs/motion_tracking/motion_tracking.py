@@ -203,7 +203,6 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
     def _init_tracking_config(self):
         
         
-        
         if "motion_tracking_link" in self.config.robot.motion:
             self.motion_tracking_id = [self.simulator._body_list.index(link) for link in self.config.robot.motion.motion_tracking_link]
         if "lower_body_link" in self.config.robot.motion:
@@ -659,7 +658,6 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
         ## diff compute - kinematic angular velocity
         
         self.dif_global_body_ang_vel = ref_body_ang_vel_extend - self._rigid_body_ang_vel_extend
-        # ang_vel_reward = self._reward_teleop_body_ang_velocity_extend()
 
 
 
@@ -720,8 +718,7 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
             # env_origins is what keeps this comparable across envs: ref_body_pos_extend is a
             # world position and the envs sit on a grid spacing metres apart.
         motionframe_ref_rigid_body_pos = ref_body_pos_extend.view(env_batch_size, -1, 3) - self.env_origins.view(env_batch_size, 1, 3)
-        motionframe_ref_rigid_body_pos_flat = my_quat_rotate(heading_inv_rot_expand.view(-1, 4), motionframe_ref_rigid_body_pos.view(-1, 3))
-        self._obs_local_ref_rigid_body_pos_motionframe = motionframe_ref_rigid_body_pos_flat.view(env_batch_size, -1) # (num_envs, num_rigid_bodies*3)
+        self._obs_local_ref_rigid_body_pos_motionframe = motionframe_ref_rigid_body_pos.view(env_batch_size, -1) # (num_envs, num_rigid_bodies*3)
 
 
 
@@ -1235,18 +1232,6 @@ class LeggedRobotMotionTracking(LeggedRobotBase):
         
         self._update_adaptive_sigma(feet_dist, 'teleop_feet_pos')
         return r_feet
-
-    def _reward_teleop_jump_height(self):
-        # Paid only while the reference itself is airborne, so the term cannot be
-        # farmed by bouncing at arbitrary times.
-        ref_flight = (self.ref_contact_mask.sum(dim=-1) < 0.5).float()
-        # dif_global_body_pos is ref minus actual: positive z means the robot is
-        # below the reference. Overshoot is left to the tracking rewards.
-        height_deficit = self.dif_global_body_pos[:, self.jump_body_id, 2].clamp(min=0.0)
-        # Linear, not exp(-e/sigma): the ramp keeps a constant gradient even when the
-        # robot is nowhere near the reference apex, which is where a jump has to start.
-        r_jump = 1.0 - (height_deficit / self.config.rewards.jump_height_deficit_range).clamp(max=1.0)
-        return r_jump * ref_flight
 
     def _reward_teleop_body_rotation_extend(self):
         rotation_diff = self.dif_global_body_rot
