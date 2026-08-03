@@ -575,10 +575,12 @@ class IsaacGym(BaseSimulator):
     def get_dof_limits_properties(self):
         # assert the isaacgym dof limits are the same as the config
         for i in range(self.num_dof):
-            assert abs(self.hard_dof_pos_limits[i, 0].item() - self.robot_config.dof_pos_lower_limit_list[i]) < 1e-5, f"DOF {i} lower limit does not match"
-            assert abs(self.hard_dof_pos_limits[i, 1].item() - self.robot_config.dof_pos_upper_limit_list[i]) < 1e-5, f"DOF {i} upper limit does not match"
-            assert abs(self.dof_vel_limits[i].item() - self.robot_config.dof_vel_limit_list[i]) < 1e-5, f"DOF {i} velocity limit does not match"
-            assert abs(self.torque_limits[i].item() - self.robot_config.dof_effort_limit_list[i]) < 1e-5, f"DOF {i} effort limit does not match"
+            name = self.robot_config.dof_names[i]
+            #sim表示IsaacGym从urdf里解析出来的值，cfg表示在yaml列表里面写的值
+            assert abs(self.hard_dof_pos_limits[i, 0].item() - self.robot_config.dof_pos_lower_limit_list[i]) < 1e-5, f"DOF {i} ({name}) lower limit does not match: sim={self.hard_dof_pos_limits[i, 0].item()} cfg={self.robot_config.dof_pos_lower_limit_list[i]}"
+            assert abs(self.hard_dof_pos_limits[i, 1].item() - self.robot_config.dof_pos_upper_limit_list[i]) < 1e-5, f"DOF {i} ({name}) upper limit does not match: sim={self.hard_dof_pos_limits[i, 1].item()} cfg={self.robot_config.dof_pos_upper_limit_list[i]}"
+            assert abs(self.dof_vel_limits[i].item() - self.robot_config.dof_vel_limit_list[i]) < 1e-5, f"DOF {i} ({name}) velocity limit does not match: sim={self.dof_vel_limits[i].item()} cfg={self.robot_config.dof_vel_limit_list[i]}"
+            assert abs(self.torque_limits[i].item() - self.robot_config.dof_effort_limit_list[i]) < 1e-5, f"DOF {i} ({name}) effort limit does not match: sim={self.torque_limits[i].item()} cfg={self.robot_config.dof_effort_limit_list[i]}"
             # assert self.dof_pos_hard_dof_pos_limitslimits[i, 1].item() == self.robot_config.dof_pos_upper_limit_list[i], f"DOF {i} upper limit does not match"
             # assert self.dof_vel_limits[i].item() == self.robot_config.dof_vel_limit_list[i], f"DOF {i} velocity limit does not match"
             # assert self.torque_limits[i].item() == self.robot_config.dof_effort_limit_list[i], f"DOF {i} effort limit does not match"

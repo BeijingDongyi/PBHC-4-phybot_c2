@@ -363,20 +363,13 @@
     <collision name="left_ankle_roll_1">
         <origin rpy="0 1.57 0" xyz="0.04 -0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.18" radius="0.012"/>
+            <cylinder length="0.24" radius="0.012"/>
         </geometry>
     </collision>
     <collision name="left_ankle_roll_2">
         <origin rpy="0 1.57 0" xyz="0.04 0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.18" radius="0.012"/>
-        </geometry>
-    </collision>
-    <!-- 为了减少脚尖着地而加的中间杠，如无必要可去掉，右脚同理 -->
-    <collision name="left_ankle_roll_3">                
-        <origin rpy="0 1.57 0" xyz="0.04 0.0 -0.04"/>
-        <geometry>
-            <cylinder length="0.22" radius="0.012"/>
+            <cylinder length="0.24" radius="0.012"/>
         </geometry>
     </collision>
   </link>
@@ -713,20 +706,13 @@
     <collision name="right_ankle_roll_1">
         <origin rpy="0 1.57 0" xyz="0.04 -0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.18" radius="0.012"/>
+            <cylinder length="0.24" radius="0.012"/>
         </geometry>
     </collision>
     <collision name="right_ankle_roll_2">
         <origin rpy="0 1.57 0" xyz="0.04 0.03 -0.04"/>
         <geometry>
-            <cylinder length="0.18" radius="0.012"/>
-        </geometry>
-    </collision>
-
-    <collision name="right_ankle_roll_3">
-        <origin rpy="0 1.57 0" xyz="0.04 0.0 -0.04"/>
-        <geometry>
-            <cylinder length="0.22" radius="0.012"/>
+            <cylinder length="0.24" radius="0.012"/>
         </geometry>
     </collision>
   </link>

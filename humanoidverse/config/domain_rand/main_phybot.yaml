@@ -23,7 +23,7 @@ domain_rand:
   base_com_range: #m
       x : [-0.05, 0.05]
       y : [-0.05, 0.05]
-      z : [-0.03, 0.03]
+      z : [-0.01, 0.01]
 
   randomize_link_mass : True
   link_mass_range : [0.9, 1.1] # *factor
@@ -74,7 +74,7 @@ domain_rand:
   randomize_restitution : False
   restitution_range : [0.0, 1.0]
 
-  randomize_base_mass : True
+  randomize_base_mass : False
   # 承载体: phybot 没有 pelvis/torso_link。waist_yaw 在 collapse_fixed_joints 后
   # 吸收了 torso(7.895)+neck(2.789), 共 10.89kg, 是真正的躯干, 语义上对应 g1 的 torso_link。
   # 不能用 base_link(仅 3.24kg, 且是骨盆) —— [-5,5] 会让它变成负质量。

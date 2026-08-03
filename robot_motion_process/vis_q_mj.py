@@ -82,7 +82,7 @@ def main(cfg : DictConfig) -> None:
     curr_start, num_motions, motion_id, motion_acc, time_step, dt, speed, paused, rewind \
         = 0, 1, 0, set(), 0, 1/30, 1.0, False, False
     # if 'dt' in cfg:
-    #     dt = cfg.dt
+    #     dt = cfg.dt 
     motion_file = "motion_source/phybot_pkl_contact_mask/kongti_test_cont_mask.pkl" if 'motion_file' not in cfg else cfg.motion_file
     motion_data = joblib.load(motion_file)
     motion_data_keys = list(motion_data.keys())
